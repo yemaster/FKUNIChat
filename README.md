@@ -99,6 +99,43 @@ python app.py
 
 ## 📚 调用示例
 
+### OpenClaw 配置
+
+设置 models：
+
+```json
+  "models": {
+    "providers": {
+      "USTC": {
+        "baseUrl": "http://localhost:5000/v1",
+        "apiKey": "__OPENCLAW_REDACTED__",
+        "api": "openai-completions",
+        "models": [
+          {
+            "id": "__USTC_Adapter__deepseek-v3",
+            "name": "USTC Deepseek v3",
+            "api": "openai-completions",
+            "reasoning": false,
+            "input": [
+              "text"
+            ],
+            "cost": {
+              "input": 0,
+              "output": 0,
+              "cacheRead": 0,
+              "cacheWrite": 0
+            },
+            "contextWindow": 200000,
+            "maxTokens": 8192
+          }
+        ]
+      }
+    }
+  }
+```
+
+然后配置 agent.model 为 USTC/__USTC_Adapter__deepseek-v3 即可
+
 ### Claude Code 调用
 
 配置环境变量：
