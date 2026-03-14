@@ -82,12 +82,30 @@
       </Card>
 
       <Card class="help-card">
+        <template #title>第三方规则说明</template>
+        <template #content>
+          <div class="help-list">
+            <p>7.1 本服务所转接的上游服务可能具有独立的服务条款、隐私政策、使用规范或数据处理规则，您在使用相应功能时，还应同时遵守该等规则。</p>
+            <p>7.2 本服务中对 USTChat 或其他第三方名称的引用，仅用于说明接口来源、兼容对象或技术用途，不代表授权、许可、合作或官方关系。</p>
+            <p>7.3 与上游服务相关的数据处理行为，还可能受到该上游服务自身规则约束，您应自行查阅并确认。</p>
+            <p>
+              USTChat 官方使用条款：
+              <a href="https://chat.ustc.edu.cn/ustchat/policies/ustchat-terms-of-use.html" target="_blank"
+                rel="noopener noreferrer">
+                https://chat.ustc.edu.cn/ustchat/policies/ustchat-terms-of-use.html
+              </a>
+            </p>
+          </div>
+        </template>
+      </Card>
+
+      <Card class="help-card">
         <template #title>服务变更与终止</template>
         <template #content>
           <div class="help-list">
-            <p>7.1 开发者有权根据技术情况、维护安排、风险控制、合规要求或上游服务调整，对本服务进行更新、修改、限制、中止或终止。</p>
-            <p>7.2 如发现存在违法违规、滥用、侵权、绕过限制、危害安全或其他不当使用情形，开发者有权拒绝继续提供服务。</p>
-            <p>7.3 您在本条款更新后继续使用本服务的，视为您已接受更新后的条款内容。</p>
+            <p>8.1 开发者有权根据技术情况、维护安排、风险控制、合规要求或上游服务调整，对本服务进行更新、修改、限制、中止或终止。</p>
+            <p>8.2 如发现存在违法违规、滥用、侵权、绕过限制、危害安全或其他不当使用情形，开发者有权拒绝继续提供服务。</p>
+            <p>8.3 您在本条款更新后继续使用本服务的，视为您已接受更新后的条款内容。</p>
           </div>
         </template>
       </Card>
