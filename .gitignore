@@ -1,0 +1,6 @@
+.github
+dist
+node_modules
+release
+*.log
+*.env

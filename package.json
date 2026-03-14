@@ -1,0 +1,76 @@
+{
+  "name": "fkunichat-ng",
+  "version": "1.0.0",
+  "description": "FKUNIChat Electron desktop console",
+  "author": "yemaster",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "dev": "vite",
+    "electron:dev": "node scripts/electron-dev.mjs",
+    "electron:start": "node scripts/electron-start.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip"
+  },
+  "dependencies": {
+    "@primeuix/themes": "^2.0.3",
+    "primeicons": "^7.0.0",
+    "primevue": "^4.5.4",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.1",
+    "electron": "^35.1.4",
+    "electron-builder": "^25.1.8",
+    "vite": "^6.2.1"
+  },
+  "build": {
+    "appId": "com.yemaster.fkunichat",
+    "productName": "FKUNIChat",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/renderer/**/*",
+      "electron/**/*",
+      "package.json",
+      "!service/**/*",
+      "!venv/**/*",
+      "!release/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "service",
+        "to": "service",
+        "filter": [
+          "**/*",
+          "!__pycache__/**"
+        ]
+      }
+    ],
+    "asar": true,
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    }
+  }
+}
