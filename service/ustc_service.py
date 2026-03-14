@@ -21,12 +21,14 @@ MODELS = {
         "show": "USTC Deepseek r1",
         "reasoning": True,
         "allow_tools": False,
+        "aliases": ["deepseek", "__ustc_adapter__deepseek-r1"],
     },
     "deepseek-v3": {
         "upstream": "deepseek-v3",
         "show": "USTC Deepseek v3",
         "reasoning": False,
         "allow_tools": True,
+        "aliases": ["__ustc_adapter__deepseek-v3"],
     },
 }
 
@@ -131,16 +133,109 @@ def claude_error(message, status_code, error_type="invalid_request_error"):
     )
 
 
-def normalize_model_name(model_name):
-    if model_name in MODELS:
-        return model_name
+def extract_model_identifier(model_name):
+    if isinstance(model_name, dict):
+        for key in ("id", "name", "model", "slug"):
+            if model_name.get(key):
+                return extract_model_identifier(model_name.get(key))
+        return ""
 
-    lowered = str(model_name or "").lower()
-    for model_id in MODELS:
-        if model_id.lower() == lowered:
-            return model_id
+    return str(model_name or "").strip()
+
+
+def iter_model_candidates(model_name):
+    raw = extract_model_identifier(model_name)
+    if not raw:
+        return []
+
+    variants = {raw, raw.lower()}
+    normalized = raw.replace("\\", "/").strip()
+    variants.add(normalized)
+    variants.add(normalized.lower())
+
+    # Accept provider-prefixed names such as "openai/deepseek-v3" or "ustc:deepseek-v3".
+    separators = ["/", ":"]
+    pending = list(variants)
+    for value in pending:
+        for separator in separators:
+            if separator in value:
+                tail = value.rsplit(separator, 1)[-1].strip()
+                if tail:
+                    variants.add(tail)
+                    variants.add(tail.lower())
+
+    return [item for item in variants if item]
+
+
+def normalize_model_name(model_name):
+    candidates = iter_model_candidates(model_name)
+    if not candidates:
+        return None
+
+    for model_id, meta in MODELS.items():
+        aliases = {
+            model_id,
+            model_id.lower(),
+            str(meta.get("upstream", "")).strip(),
+            str(meta.get("upstream", "")).strip().lower(),
+        }
+        aliases.update(str(alias).strip() for alias in meta.get("aliases", []))
+        aliases.update(str(alias).strip().lower() for alias in meta.get("aliases", []))
+        aliases = {alias for alias in aliases if alias}
+
+        for candidate in candidates:
+            normalized_candidate = candidate.strip()
+            lowered_candidate = normalized_candidate.lower()
+            if normalized_candidate in aliases or lowered_candidate in aliases:
+                return model_id
 
     return None
+
+
+def get_default_model_name(state):
+    selected_model = normalize_model_name(state.get("selectedModel"))
+    if selected_model:
+        return selected_model
+
+    return next(iter(MODELS.keys()), None)
+
+
+def build_model_metadata(model_id, meta):
+    return {
+        "id": model_id,
+        "name": meta["show"],
+        "object": "model",
+        "created": 0,
+        "owned_by": "ustc",
+        "permission": [],
+        "root": model_id,
+        "parent": None,
+        "show": meta["show"],
+        "supports_reasoning": bool(meta.get("reasoning")),
+        "supports_tools": bool(meta.get("allow_tools")),
+        "capabilities": {
+            "input": ["text"],
+            "output": ["text"],
+            "tools": bool(meta.get("allow_tools")),
+            "reasoning": bool(meta.get("reasoning")),
+            "streaming": True,
+        },
+        "context_window": 128000,
+        "max_output_tokens": 32768,
+    }
+
+
+def is_public_metadata_request():
+    if request.method != "GET":
+        return False
+
+    return (
+        request.path == "/v1/models"
+        or request.path.startswith("/v1/models/")
+        or request.path == "/v1/adapters"
+        or request.path == "/models"
+        or request.path.startswith("/models/")
+    )
 
 
 def stream_openai_response(upstream_response):
@@ -310,6 +405,341 @@ def claude_to_openai_tools(claude_tools):
     return openai_tools
 
 
+def stringify_response_value(value):
+    if value is None:
+        return ""
+
+    if isinstance(value, str):
+        return value
+
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+
+    return str(value)
+
+
+def extract_response_text(content):
+    if content is None:
+        return ""
+
+    if isinstance(content, str):
+        return content
+
+    if not isinstance(content, list):
+        return stringify_response_value(content)
+
+    text_parts = []
+    for block in content:
+        if isinstance(block, str):
+            text_parts.append(block)
+            continue
+
+        if not isinstance(block, dict):
+            text_parts.append(stringify_response_value(block))
+            continue
+
+        block_type = block.get("type")
+        if block_type in ("input_text", "output_text", "text", "summary_text"):
+            text_parts.append(str(block.get("text", "")))
+            continue
+
+        if block_type == "refusal":
+            text_parts.append(str(block.get("refusal", "")))
+            continue
+
+        if "text" in block:
+            text_parts.append(str(block.get("text", "")))
+
+    return "".join(text_parts)
+
+
+def responses_to_openai_messages(response_input, instructions=None):
+    openai_messages = []
+    if instructions:
+        openai_messages.append({"role": "system", "content": instructions})
+
+    if response_input is None:
+        return openai_messages
+
+    if isinstance(response_input, str):
+        openai_messages.append({"role": "user", "content": response_input})
+        return openai_messages
+
+    if not isinstance(response_input, list):
+        openai_messages.append({"role": "user", "content": stringify_response_value(response_input)})
+        return openai_messages
+
+    for item in response_input:
+        if isinstance(item, str):
+            openai_messages.append({"role": "user", "content": item})
+            continue
+
+        if not isinstance(item, dict):
+            continue
+
+        item_type = item.get("type")
+        if item_type in (None, "message"):
+            role = item.get("role", "user")
+            message_payload = {"role": role}
+            content_text = extract_response_text(item.get("content"))
+            if content_text or role != "assistant":
+                message_payload["content"] = content_text
+
+            if message_payload.get("content") or message_payload.get("tool_calls"):
+                openai_messages.append(message_payload)
+            continue
+
+        if item_type == "function_call":
+            call_id = item.get("call_id") or item.get("id") or f"call_{len(openai_messages)}"
+            arguments = item.get("arguments")
+            if arguments is None and "input" in item:
+                arguments = json.dumps(item.get("input", {}), ensure_ascii=False)
+
+            openai_messages.append(
+                {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "id": call_id,
+                            "type": "function",
+                            "function": {
+                                "name": item.get("name", "function"),
+                                "arguments": stringify_response_value(arguments),
+                            },
+                        }
+                    ],
+                }
+            )
+            continue
+
+        if item_type == "function_call_output":
+            call_id = item.get("call_id") or item.get("tool_call_id") or item.get("id") or f"call_{len(openai_messages)}"
+            openai_messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": call_id,
+                    "content": stringify_response_value(item.get("output")),
+                }
+            )
+            continue
+
+        if item_type in ("reasoning", "item_reference"):
+            continue
+
+        role = item.get("role")
+        if role:
+            content_text = extract_response_text(item.get("content"))
+            if content_text:
+                openai_messages.append({"role": role, "content": content_text})
+
+    return openai_messages
+
+
+def responses_to_openai_tools(response_tools):
+    openai_tools = []
+    for tool in response_tools or []:
+        if not isinstance(tool, dict) or tool.get("type") != "function":
+            continue
+
+        function_payload = tool.get("function") if isinstance(tool.get("function"), dict) else tool
+        name = function_payload.get("name")
+        if not name:
+            continue
+
+        openai_tools.append(
+            {
+                "type": "function",
+                "function": {
+                    "name": name,
+                    "description": function_payload.get("description", ""),
+                    "parameters": function_payload.get("parameters", {}),
+                },
+            }
+        )
+
+    return openai_tools
+
+
+def resolve_response_input(data):
+    if not isinstance(data, dict):
+        return None
+
+    for key in ("input", "messages", "prompt", "text"):
+        if key in data and data.get(key) is not None:
+            return data.get(key)
+
+    if data.get("instructions"):
+        return []
+
+    return None
+
+
+def ensure_response_messages(messages, previous_messages=None):
+    if messages or previous_messages:
+        return messages
+
+    # Codex may probe /v1/responses with an empty input payload.
+    return [{"role": "user", "content": ""}]
+
+
+def build_responses_usage(usage=None):
+    usage = usage or {}
+    input_tokens = int(usage.get("input_tokens", usage.get("prompt_tokens", 0)) or 0)
+    output_tokens = int(usage.get("output_tokens", usage.get("completion_tokens", 0)) or 0)
+    total_tokens = int(usage.get("total_tokens", input_tokens + output_tokens) or 0)
+
+    return {
+        "input_tokens": input_tokens,
+        "input_tokens_details": {
+            "cached_tokens": int(usage.get("cached_tokens", 0) or 0),
+        },
+        "output_tokens": output_tokens,
+        "output_tokens_details": {
+            "reasoning_tokens": int(usage.get("reasoning_tokens", 0) or 0),
+        },
+        "total_tokens": total_tokens,
+    }
+
+
+def build_responses_payload(response_id, model_name, output, instructions=None, status="completed", usage=None, created_at=None, input_items=None):
+    timestamp = created_at or int(time.time())
+    completed_at = timestamp if status in ("completed", "failed", "incomplete") else None
+    return {
+        "id": response_id,
+        "object": "response",
+        "created_at": timestamp,
+        "status": status,
+        "completed_at": completed_at,
+        "error": None,
+        "incomplete_details": None,
+        "input": input_items if input_items is not None else [],
+        "instructions": instructions,
+        "max_output_tokens": None,
+        "model": model_name,
+        "output": output,
+        "parallel_tool_calls": True,
+        "previous_response_id": None,
+        "reasoning_effort": None,
+        "reasoning": {
+            "effort": None,
+            "summary": None,
+        },
+        "store": False,
+        "temperature": 1,
+        "text": {
+            "format": {
+                "type": "text",
+            }
+        },
+        "tool_choice": "auto",
+        "tools": [],
+        "top_p": 1,
+        "truncation": "disabled",
+        "usage": build_responses_usage(usage) if status == "completed" else None,
+        "user": None,
+        "metadata": {},
+    }
+
+
+def openai_to_responses_output(openai_response):
+    response_id = openai_response.get("id") or f"resp_{int(time.time() * 1000)}"
+    choice = openai_response.get("choices", [{}])[0]
+    message = choice.get("message", {})
+    output = []
+
+    content = message.get("content")
+    if content:
+        output.append(
+            {
+                "id": f"msg_{response_id}",
+                "type": "message",
+                "status": "completed",
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "output_text",
+                        "text": content,
+                        "annotations": [],
+                    }
+                ],
+            }
+        )
+
+    for tool_call in message.get("tool_calls", []):
+        call_id = tool_call.get("id") or f"call_{len(output)}"
+        output.append(
+            {
+                "id": f"fc_{call_id}",
+                "type": "function_call",
+                "status": "completed",
+                "call_id": call_id,
+                "name": tool_call.get("function", {}).get("name", "function"),
+                "arguments": tool_call.get("function", {}).get("arguments", ""),
+            }
+        )
+
+    return response_id, output
+
+
+def openai_response_to_messages(openai_response):
+    choice = openai_response.get("choices", [{}])[0]
+    message = choice.get("message", {})
+    assistant_message = {"role": "assistant"}
+
+    if message.get("content"):
+        assistant_message["content"] = message["content"]
+
+    if message.get("tool_calls"):
+        assistant_message["tool_calls"] = message["tool_calls"]
+
+    if assistant_message.get("content") or assistant_message.get("tool_calls"):
+        return [assistant_message]
+
+    return []
+
+
+def responses_event(event_type, sequence_number=None, **payload):
+    body = {"type": event_type}
+    body.update(payload)
+    if sequence_number is not None:
+        body["sequence_number"] = sequence_number
+    return f"event: {event_type}\ndata: {json.dumps(body, ensure_ascii=False)}\n\n"
+
+
+def build_responses_assistant_message(message_output_index, message_item_id, text_segments, tool_states):
+    final_output = []
+
+    if message_output_index is not None:
+        text_content = "".join(text_segments)
+        content_part = {
+            "type": "output_text",
+            "text": text_content,
+            "annotations": [],
+        }
+        final_message_item = {
+            "id": message_item_id,
+            "type": "message",
+            "status": "completed",
+            "role": "assistant",
+            "content": [content_part],
+        }
+        final_output.append((message_output_index, final_message_item))
+
+    for tool_state in sorted(tool_states.values(), key=lambda item: item["output_index"]):
+        final_tool_item = {
+            "id": tool_state["item_id"],
+            "type": "function_call",
+            "status": "completed",
+            "call_id": tool_state["call_id"],
+            "name": tool_state["name"],
+            "arguments": tool_state["arguments"],
+        }
+        final_output.append((tool_state["output_index"], final_tool_item))
+
+    final_output.sort(key=lambda item: item[0])
+    return final_output
+
+
 def create_app(state_path):
     app = Flask(__name__)
 
@@ -326,6 +756,9 @@ def create_app(state_path):
             return ("", 204)
 
         if not request.path.startswith("/v1/"):
+            return None
+
+        if is_public_metadata_request():
             return None
 
         state = load_runtime_state(state_path)
@@ -385,26 +818,24 @@ def create_app(state_path):
             }
         )
 
+    @app.get("/models")
     @app.get("/v1/models")
     def list_models():
         return jsonify(
             {
                 "object": "list",
-                "data": [
-                    {
-                        "id": model_id,
-                        "show": meta["show"],
-                        "object": "model",
-                        "created": None,
-                        "owned_by": "ustc",
-                        "permission": [],
-                        "root": model_id,
-                        "parent": None,
-                    }
-                    for model_id, meta in MODELS.items()
-                ],
+                "data": [build_model_metadata(model_id, meta) for model_id, meta in MODELS.items()],
             }
         )
+
+    @app.get("/models/<path:model_name>")
+    @app.get("/v1/models/<path:model_name>")
+    def get_model(model_name):
+        normalized = normalize_model_name(model_name)
+        if not normalized:
+            return openai_error("模型不存在。", 404)
+
+        return jsonify(build_model_metadata(normalized, MODELS[normalized]))
 
     @app.post("/v1/chat/completions")
     def chat_completions():
@@ -416,7 +847,7 @@ def create_app(state_path):
         data = request.get_json(force=True, silent=True) or {}
         stream = bool(data.get("stream", False))
         with_search = bool(data.get("with_search", False))
-        model_name = normalize_model_name(data.get("model"))
+        model_name = normalize_model_name(data.get("model")) or get_default_model_name(state)
         messages = data.get("messages", [])
         tools = data.get("tools", [])
 
@@ -458,6 +889,10 @@ def create_app(state_path):
         except Exception as exc:
             return openai_error(str(exc), 500, "server_error")
 
+    @app.post("/v1/responses")
+    def responses():
+        return openai_error("/v1/responses 暂不支持。请使用 /v1/chat/completions。", 404, "invalid_request_error")
+
     @app.post("/v1/messages")
     def messages():
         state = getattr(g, "runtime_state", load_runtime_state(state_path))
@@ -466,7 +901,7 @@ def create_app(state_path):
             return claude_error("USTChat Token 未配置。", 503, "authentication_error")
 
         data = request.get_json(force=True, silent=True) or {}
-        model_name = normalize_model_name(data.get("model"))
+        model_name = normalize_model_name(data.get("model")) or get_default_model_name(state)
         if not model_name:
             return claude_error("模型不存在。", 400)
 

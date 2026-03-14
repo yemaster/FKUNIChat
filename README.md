@@ -2,7 +2,7 @@
 
 ### 项目简介
 
-FKUNIChat 是一款给 USTChat（https://chat.ustc.edu.cn）制作的 API 兼容层，能将 USTChat 用 OpenAI、Codex、Claude Code 等格式导出，支持在 Python、Codex、Claude Code、OpenClaw 中调用。
+FKUNIChat 是一款给 USTChat（https://chat.ustc.edu.cn）制作的 API 兼容层，能将 USTChat 用 OpenAI、Claude Code 等格式导出，支持在 Python、Claude Code、OpenClaw 中调用。
 
 - 博客链接：[https://blog.yemaster.cn/post/170](https://blog.yemaster.cn/post/170)
 
