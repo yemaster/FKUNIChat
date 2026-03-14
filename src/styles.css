@@ -1469,21 +1469,23 @@ code {
 }
 
 .setup-log {
-  display: grid;
-  gap: 0.3rem;
+  overflow-y: auto;
   padding: 0.65rem 0.75rem;
   border: 1px solid var(--fk-border-soft);
   border-radius: 0.75rem;
   background: var(--fk-surface-2);
+  max-height: calc(1.5em * 3 + 1.3rem);
+  scroll-behavior: smooth;
 }
 
-.setup-log p {
+.setup-log pre {
   margin: 0;
   font-family: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
   font-size: 0.82rem;
   line-height: 1.5;
   color: var(--fk-text-muted);
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .setup-agreement-line {

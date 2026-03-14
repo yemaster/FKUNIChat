@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import Button from "primevue/button";
 import Card from "primevue/card";
 import Checkbox from "primevue/checkbox";
@@ -62,6 +62,39 @@ const dependencyLogs = computed(() => (
     ? props.initializationState.dependencyLogs
     : []
 ));
+
+const venvLogRef = ref(null);
+const dependencyLogRef = ref(null);
+
+function stringifyLogLines(lines) {
+  return Array.isArray(lines) ? lines.join("\n") : "";
+}
+
+function scrollLogToBottom(element) {
+  if (!element) {
+    return;
+  }
+
+  element.scrollTop = element.scrollHeight;
+}
+
+watch(
+  () => stringifyLogLines(venvLogs.value),
+  async () => {
+    await nextTick();
+    scrollLogToBottom(venvLogRef.value);
+  },
+  { flush: "post" }
+);
+
+watch(
+  () => stringifyLogLines(dependencyLogs.value),
+  async () => {
+    await nextTick();
+    scrollLogToBottom(dependencyLogRef.value);
+  },
+  { flush: "post" }
+);
 </script>
 
 <template>
@@ -128,8 +161,8 @@ const dependencyLogs = computed(() => (
               :loading="initializationState.pendingAction === 'create-venv'"
               @click="emit('create-venv')"
             />
-            <div v-if="venvLogs.length > 0" class="setup-log">
-              <p v-for="(line, index) in venvLogs" :key="`venv-log-${index}`">{{ line }}</p>
+            <div v-if="venvLogs.length > 0" ref="venvLogRef" class="setup-log" role="log" aria-live="polite">
+              <pre>{{ venvLogs.join("\n") }}</pre>
             </div>
           </div>
         </template>
@@ -159,8 +192,8 @@ const dependencyLogs = computed(() => (
               :loading="initializationState.pendingAction === 'install-dependencies'"
               @click="emit('install-dependencies')"
             />
-            <div v-if="dependencyLogs.length > 0" class="setup-log">
-              <p v-for="(line, index) in dependencyLogs" :key="`dependency-log-${index}`">{{ line }}</p>
+            <div v-if="dependencyLogs.length > 0" ref="dependencyLogRef" class="setup-log" role="log" aria-live="polite">
+              <pre>{{ dependencyLogs.join("\n") }}</pre>
             </div>
           </div>
         </template>

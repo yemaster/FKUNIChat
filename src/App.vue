@@ -244,8 +244,7 @@ function normalizeSetupLogLines(lines) {
 
   return source
     .map((line) => String(line || "").trim())
-    .filter(Boolean)
-    .slice(-3);
+    .filter(Boolean);
 }
 
 function getSetupLogKey(action) {
@@ -307,7 +306,7 @@ function appendSetupLogChunk(action, chunk) {
     .filter(Boolean);
 
   if (nextLines.length > 0) {
-    state.lines = [...state.lines, ...nextLines].slice(-24);
+    state.lines = [...state.lines, ...nextLines];
   }
 
   syncSetupLogView(action);
@@ -322,7 +321,7 @@ function flushSetupLogBuffer(action) {
 
   const tail = String(state.buffer || "").trim();
   if (tail) {
-    state.lines = [...state.lines, tail].slice(-24);
+    state.lines = [...state.lines, tail];
   }
   state.buffer = "";
   syncSetupLogView(action);
@@ -337,7 +336,7 @@ function resetSetupProcessState() {
 
 function buildSetupProcessError(action, exitCode) {
   const logKey = getSetupLogKey(action);
-  const lines = logKey ? normalizeSetupLogLines(initializationState[logKey]) : [];
+  const lines = logKey ? normalizeSetupLogLines(initializationState[logKey]).slice(-3) : [];
   const summary = getSetupLogMessage(action);
 
   if (lines.length > 0) {
