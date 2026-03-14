@@ -92,8 +92,14 @@ API 地址：`http://127.0.0.1:28080`，API KEY：自由配置。
 4. 推送分支：`git push origin feature/AmazingFeature`
 5. 开启 Pull Request
 
+### TODO List
+
+- [ ] 自动化构建
+- [ ] 自动更新
+
 ### 📝 更新日志
 
+- **v2.0.0 (ng)** 新增客户端 GUI 界面，更易操作，删除 adapter 设计。
 - **v1.1.0** 🎉 新增兼容 Claude Code 的 API
 - **v1.0.1** 🎉 为 USTC Chat 支持 Tool Calls
 - **v1.0.0** 🎉 初始版本发布，支持 USTC Chat 系列模型

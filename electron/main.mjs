@@ -374,7 +374,8 @@ ipcMain.handle("runtime:get-info", async () => ({
   isPackaged: app.isPackaged,
   tempPath: app.getPath("temp"),
   userDataPath,
-  appId: app.getName()
+  appId: app.getName(),
+  appVersion: app.getVersion()
 }));
 
 ipcMain.handle("storage:get", async (_event, key) => {

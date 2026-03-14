@@ -10,6 +10,7 @@ import {
   buildInstallProjectDependenciesCommand,
   checkUstcToken,
   exitApp,
+  getAppVersion,
   fetchUstcTokenWithWebview,
   getEnvironmentLabel,
   getRunningProcesses,
@@ -45,6 +46,7 @@ const isNarrow = ref(false);
 const mobileDrawerOpen = ref(false);
 const appLogs = ref([]);
 const serviceLogs = ref([]);
+const appVersion = ref(__APP_VERSION__);
 const helpNavigation = ref({ anchor: "", token: 0 });
 let mediaQuery = null;
 let mediaHandler = null;
@@ -976,6 +978,7 @@ onMounted(() => {
   void (async () => {
     isElectron.value = await waitForElectronRuntime();
     appendLog("frontend", "info", `运行环境检测: ${isElectron.value ? "Electron" : "浏览器预览"}`);
+    appVersion.value = await getAppVersion();
     if (isElectron.value) {
       initElectronRuntime({
         onWindowClose: () => handleWindowClose(),
@@ -1094,7 +1097,7 @@ function handleUnhandledRejection(event) {
             :app-logs="appLogs"
             :service-logs="serviceLogs"
             :environment-label="getEnvironmentLabel()"
-            :app-version="__APP_VERSION__"
+            :app-version="appVersion"
             :help-anchor="helpNavigation.anchor"
             :help-anchor-token="helpNavigation.token"
             @update:model-value="Object.assign(config, $event)"

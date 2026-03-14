@@ -21,7 +21,8 @@ async function getRuntimeInfo() {
       cwd: "",
       appPath: "",
       tempPath: "",
-      appId: "browser-preview"
+      appId: "browser-preview",
+      appVersion: __APP_VERSION__
     };
   }
 
@@ -832,6 +833,11 @@ export function getEnvironmentLabel() {
 
   const osName = globalThis.electronAPI?.env?.os || "Unknown";
   return `Electron / ${osName}`;
+}
+
+export async function getAppVersion() {
+  const runtimeInfo = await getRuntimeInfo();
+  return String(runtimeInfo?.appVersion || __APP_VERSION__);
 }
 
 export function isElectronRuntimeAvailable() {

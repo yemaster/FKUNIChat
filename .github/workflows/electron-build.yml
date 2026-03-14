@@ -1,0 +1,85 @@
+name: Electron Build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: electron-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            runner: windows-latest
+            build_args: --win nsis --x64
+            artifact_name: FKUNIChat-windows-x64
+          - name: windows-arm64
+            runner: windows-latest
+            build_args: --win nsis --arm64
+            artifact_name: FKUNIChat-windows-arm64
+          - name: linux-x64
+            runner: ubuntu-latest
+            build_args: --linux AppImage deb --x64
+            artifact_name: FKUNIChat-linux-x64
+          - name: linux-arm64
+            runner: ubuntu-latest
+            build_args: --linux AppImage deb --arm64
+            artifact_name: FKUNIChat-linux-arm64
+          - name: macos-x64
+            runner: macos-13
+            build_args: --mac dmg zip --x64
+            artifact_name: FKUNIChat-macos-x64
+          - name: macos-arm64
+            runner: macos-14
+            build_args: --mac dmg zip --arm64
+            artifact_name: FKUNIChat-macos-arm64
+
+    env:
+      CI: true
+      CSC_IDENTITY_AUTO_DISCOVERY: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build renderer
+        run: npm run build
+
+      - name: Package Electron app
+        run: npx electron-builder ${{ matrix.build_args }}
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.zip
+            release/*.AppImage
+            release/*.deb
+            release/*.blockmap
+            release/latest*.yml
+          if-no-files-found: error
+          compression-level: 0
