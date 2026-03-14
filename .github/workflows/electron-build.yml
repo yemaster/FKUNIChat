@@ -96,6 +96,12 @@ jobs:
           pattern: FKUNIChat-*
           path: release-artifacts
 
+      - name: Normalize Windows update metadata names
+        run: |
+          if [ -f "release-artifacts/FKUNIChat-windows-arm64/latest.yml" ]; then
+            mv "release-artifacts/FKUNIChat-windows-arm64/latest.yml" "release-artifacts/FKUNIChat-windows-arm64/latest-arm64.yml"
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
