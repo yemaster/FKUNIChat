@@ -4,7 +4,10 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "v*"
+      - "v*.*.*"
+      - "!v*.*.*-*"
+      - "v*.*.*-alpha*"
+      - "v*.*.*-beta*"
 
 permissions:
   contents: read
