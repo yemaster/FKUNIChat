@@ -6,30 +6,9 @@ FKUNIChat 是一款给 USTChat（https://chat.ustc.edu.cn）制作的 API 兼容
 
 - 博客链接：[https://blog.yemaster.cn/post/170](https://blog.yemaster.cn/post/170)
 
-### ✨ 核心特色
-
-- **🎯 统一 API 协议** - 基于 OpenAI Chat Completions 协议设计，一套代码适配所有模型
-- **💫 开箱即用** - 自带现代化前端聊天界面，零配置即可开始对话
-- **🛡️ 安全可靠** - 所有认证信息本地存储，完全掌控数据安全
-- **📚 丰富示例** - 提供多种编程语言的调用示例，快速上手，查看 `examples` 文件夹
-
 > [!Warning]
 >
 > 该项目仍然在测试中，不稳定，可能会出现错误。有问题请提交 Issue。
-
-### 🎇项目截图
-
-#### 网页聊天
-
-![image-20260314185131190](./assets/image-20260314185131190.png)
-
-#### API 调用
-
-![image-20251104130047308](./assets/image-20251104130047308.png)
-
-#### Claude Code 调用
-
-![image-20251107174410268](./assets/image-20251107174410268.png)
 
 ### 🎪 支持模型
 
@@ -44,9 +23,11 @@ FKUNIChat 是一款给 USTChat（https://chat.ustc.edu.cn）制作的 API 兼容
 
 支持系统：
 
-Windows 10/11 x64
+- Windows 10/11 x64
+- Linux x64/arm64
+- Mac OS x64
 
-需要提前安装 Python 并放入环境变量。
+需要提前安装 Python 并放入环境变量，并从 [Releases 页面](https://github.com/yemaster/FKUNIChat/releases) 下载最新版本的安装包。
 
 ### 初始化程序
 
@@ -79,6 +60,20 @@ ANTHROPIC_MODEL=__USTC_Adapter__deepseek-v3
 ### 代码调用
 
 API 地址：`http://127.0.0.1:28080`，API KEY：自由配置。
+
+### 🎇项目截图
+
+#### 网页聊天
+
+![image-20260314185131190](./assets/image-20260314185131190.png)
+
+#### API 调用
+
+![image-20251104130047308](./assets/image-20251104130047308.png)
+
+#### Claude Code 调用
+
+![image-20251107174410268](./assets/image-20251107174410268.png)
 
 ### 🛠️ 开发者指南
 
