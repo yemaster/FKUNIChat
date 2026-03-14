@@ -2,7 +2,7 @@
   "name": "fkunichat-ng",
   "version": "2.0.0-alpha.2",
   "description": "FKUNIChat Electron desktop console",
-  "author": "yemaster",
+  "author": "yemaster <me@yemaster.cn>",
   "private": true,
   "type": "module",
   "main": "electron/main.mjs",

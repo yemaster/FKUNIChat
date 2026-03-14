@@ -40,10 +40,6 @@ jobs:
             runner: ubuntu-latest
             build_args: --linux AppImage deb --arm64
             artifact_name: FKUNIChat-linux-arm64
-          - name: macos-x64
-            runner: macos-13
-            build_args: --mac dmg zip --x64
-            artifact_name: FKUNIChat-macos-x64
           - name: macos-arm64
             runner: macos-14
             build_args: --mac dmg zip --arm64
@@ -70,7 +66,7 @@ jobs:
         run: npm run build
 
       - name: Package Electron app
-        run: npx electron-builder ${{ matrix.build_args }}
+        run: npx electron-builder ${{ matrix.build_args }} --publish never
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
