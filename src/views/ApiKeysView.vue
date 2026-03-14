@@ -86,11 +86,11 @@ function formatUsage(row) {
 function maskKey(value, visible) {
   const text = String(value || "");
   if (visible) {
-    return text || "--";
+    return text || "空";
   }
 
   if (!text) {
-    return "--";
+    return "空";
   }
 
   return `${text.slice(0, 5)}${"*".repeat(Math.max(6, text.length - 5))}`;

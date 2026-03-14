@@ -6,8 +6,11 @@ import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
 import Select from "primevue/select";
 import ToggleSwitch from "primevue/toggleswitch";
+import Tabs from "primevue/tabs";
+import TabList from "primevue/tablist";
+import Tab from "primevue/tab";
+import TabPanels from "primevue/tabpanels";
 import TabPanel from "primevue/tabpanel";
-import TabView from "primevue/tabview";
 import { useToast } from "primevue/usetoast";
 
 const props = defineProps({
@@ -28,7 +31,7 @@ const props = defineProps({
 const emit = defineEmits(["update:model-value", "start-service", "stop-service", "navigate", "open-ustc", "auto-fetch-token"]);
 const toast = useToast();
 const now = ref(Date.now());
-const apiUsageTabIndex = ref(0);
+const apiUsageTabIndex = ref("0");
 const tokenDraft = ref("");
 const tokenEditing = ref(false);
 let timerId = null;
@@ -143,6 +146,20 @@ response = client.chat.completions.create(
 )
 
 print(response.choices[0].message.content)`
+);
+const codexEnvCode = computed(
+  () => `OPENAI_BASE_URL=${serviceBaseUrl.value}
+OPENAI_API_KEY=${selectedApiKey.value?.value || ""}
+codex --model="${selectedModel.value}"`
+);
+const codexConfigToml = computed(
+  () => `model = "${selectedModel.value}"
+model_provider = "ustc"
+
+[model_providers.ustc]
+name = "USTC"
+base_url = "${serviceBaseUrl.value}"
+env_key = "${selectedApiKey.value?.value || ""}"`
 );
 const claudeEnvCode = computed(
   () => `ANTHROPIC_BASE_URL=${claudeBaseUrl.value}
@@ -346,60 +363,30 @@ async function copyText(value, detail = "内容已复制") {
                   <div class="service-form__label-line">
                     <span class="service-form__label-line-main">
                       <span class="service-form__label">USTChat Token</span>
-                      <Button
-                        icon="pi pi-question-circle"
-                        severity="secondary"
-                        text
-                        rounded
-                        class="inline-help-button"
-                        @click="emit('navigate', { page: 'help', anchor: 'ustc-token' })"
-                      />
+                      <Button icon="pi pi-question-circle" severity="secondary" text rounded class="inline-help-button"
+                        @click="emit('navigate', { page: 'help', anchor: 'ustc-token' })" />
                     </span>
-                    <span
-                      class="token-state"
-                      :class="tokenState.valid ? 'token-state--valid' : tokenState.checked ? 'token-state--invalid' : 'token-state--idle'"
-                    >
+                    <span class="token-state"
+                      :class="tokenState.valid ? 'token-state--valid' : tokenState.checked ? 'token-state--invalid' : 'token-state--idle'">
                       {{ tokenStatusLabel }}
                     </span>
                   </div>
-                  <InputText
-                    :model-value="displayedToken"
-                    fluid
-                    placeholder="粘贴 USTChat token"
-                    class="service-form__input"
-                    @focus="handleTokenFocus"
-                    @blur="handleTokenBlur"
-                    @update:model-value="handleTokenInput"
-                  />
+                  <InputText :model-value="displayedToken" fluid placeholder="粘贴 USTChat token"
+                    class="service-form__input" @focus="handleTokenFocus" @blur="handleTokenBlur"
+                    @update:model-value="handleTokenInput" />
                 </div>
                 <div class="flat-actions">
-                  <Button
-                    label="自动获取"
-                    severity="secondary"
-                    text
+                  <Button label="自动获取" severity="secondary" text
                     class="panel-action panel-action--small panel-action--primary token-action"
-                    :loading="tokenState.pendingAction === 'auto-fetch'"
-                    @click="emit('auto-fetch-token')"
-                  />
-                  <Button
-                    label="手动获取"
-                    severity="secondary"
-                    text
-                    class="panel-action panel-action--small token-action"
-                    @click="emit('open-ustc')"
-                  />
+                    :loading="tokenState.pendingAction === 'auto-fetch'" @click="emit('auto-fetch-token')" />
+                  <Button label="手动获取" severity="secondary" text class="panel-action panel-action--small token-action"
+                    @click="emit('open-ustc')" />
                 </div>
               </div>
 
               <div class="flat-actions">
-                <Button
-                  label="终止服务"
-                  severity="secondary"
-                  text
-                  class="panel-action panel-action--danger"
-                  :loading="serviceState.pendingAction === 'stop'"
-                  @click="emit('stop-service')"
-                />
+                <Button label="终止服务" severity="secondary" text class="panel-action panel-action--danger"
+                  :loading="serviceState.pendingAction === 'stop'" @click="emit('stop-service')" />
               </div>
             </template>
 
@@ -409,62 +396,29 @@ async function copyText(value, detail = "内容已复制") {
                   <div class="service-form__label-line">
                     <span class="service-form__label-line-main">
                       <span class="service-form__label">USTChat Token</span>
-                      <Button
-                        icon="pi pi-question-circle"
-                        severity="secondary"
-                        text
-                        rounded
-                        class="inline-help-button"
-                        @click="emit('navigate', { page: 'help', anchor: 'ustc-token' })"
-                      />
+                      <Button icon="pi pi-question-circle" severity="secondary" text rounded class="inline-help-button"
+                        @click="emit('navigate', { page: 'help', anchor: 'ustc-token' })" />
                     </span>
-                    <span
-                      class="token-state"
-                      :class="tokenState.valid ? 'token-state--valid' : tokenState.checked ? 'token-state--invalid' : 'token-state--idle'"
-                    >
+                    <span class="token-state"
+                      :class="tokenState.valid ? 'token-state--valid' : tokenState.checked ? 'token-state--invalid' : 'token-state--idle'">
                       {{ tokenStatusLabel }}
                     </span>
                   </div>
-                  <InputText
-                    :model-value="displayedToken"
-                    fluid
-                    placeholder="粘贴 USTChat token"
-                    class="service-form__input"
-                    @focus="handleTokenFocus"
-                    @blur="handleTokenBlur"
-                    @update:model-value="handleTokenInput"
-                  />
+                  <InputText :model-value="displayedToken" fluid placeholder="粘贴 USTChat token"
+                    class="service-form__input" @focus="handleTokenFocus" @blur="handleTokenBlur"
+                    @update:model-value="handleTokenInput" />
                 </div>
                 <div class="flat-actions">
-                  <Button
-                    label="自动获取"
-                    severity="secondary"
-                    text
+                  <Button label="自动获取" severity="secondary" text
                     class="panel-action panel-action--small panel-action--primary token-action"
-                    :loading="tokenState.pendingAction === 'auto-fetch'"
-                    @click="emit('auto-fetch-token')"
-                  />
-                  <Button
-                    label="手动获取"
-                    severity="secondary"
-                    text
-                    class="panel-action panel-action--small token-action"
-                    @click="emit('open-ustc')"
-                  />
+                    :loading="tokenState.pendingAction === 'auto-fetch'" @click="emit('auto-fetch-token')" />
+                  <Button label="手动获取" severity="secondary" text class="panel-action panel-action--small token-action"
+                    @click="emit('open-ustc')" />
                 </div>
                 <div class="service-form__row">
                   <span class="service-form__label">运行端口</span>
-                  <InputNumber
-                    v-model="portModel"
-                    input-id="servicePort"
-                    fluid
-                    :use-grouping="false"
-                    :min="1"
-                    :max="65535"
-                    inputmode="numeric"
-                    placeholder="输入端口"
-                    class="service-form__input"
-                  />
+                  <InputNumber v-model="portModel" input-id="servicePort" fluid :use-grouping="false" :min="1"
+                    :max="65535" inputmode="numeric" placeholder="输入端口" class="service-form__input" />
                 </div>
                 <div class="service-form__row">
                   <div class="service-form__label-line">
@@ -481,15 +435,9 @@ async function copyText(value, detail = "内容已复制") {
               </div>
 
               <div class="flat-actions">
-                <Button
-                  label="启动服务"
-                  severity="secondary"
-                  text
-                  class="panel-action panel-action--success"
-                  :loading="serviceState.pendingAction === 'start'"
-                  :disabled="serviceBusy"
-                  @click="emit('start-service')"
-                />
+                <Button label="启动服务" severity="secondary" text class="panel-action panel-action--success"
+                  :loading="serviceState.pendingAction === 'start'" :disabled="serviceBusy"
+                  @click="emit('start-service')" />
               </div>
             </template>
           </div>
@@ -506,14 +454,8 @@ async function copyText(value, detail = "内容已复制") {
                   <span class="key-name">{{ key.label }}</span>
                   <strong class="key-value">{{ maskKey(key.value) }}</strong>
                 </div>
-                <Button
-                  icon="pi pi-copy"
-                  severity="secondary"
-                  text
-                  rounded
-                  class="copy-action"
-                  @click="copyText(key.value, '密钥已复制')"
-                />
+                <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action"
+                  @click="copyText(key.value, '密钥已复制')" />
               </div>
               <div v-if="latestApiKeys.length === 0" class="summary-row">
                 <span>暂无密钥</span>
@@ -522,7 +464,8 @@ async function copyText(value, detail = "内容已复制") {
             </div>
 
             <div class="flat-actions">
-              <Button label="进入管理" severity="secondary" text class="panel-action panel-action--primary" @click="emit('navigate', 'api-keys')" />
+              <Button label="进入管理" severity="secondary" text class="panel-action panel-action--primary"
+                @click="emit('navigate', 'api-keys')" />
             </div>
           </div>
         </template>
@@ -535,92 +478,141 @@ async function copyText(value, detail = "内容已复制") {
             <div class="docs-toolbar">
               <div class="docs-field">
                 <span class="service-form__label">模型</span>
-                <Select v-model="selectedModel" :options="modelOptions" option-label="label" option-value="value" fluid />
+                <Select v-model="selectedModel" :options="modelOptions" option-label="label" option-value="value"
+                  fluid />
               </div>
               <div class="docs-field">
                 <span class="service-form__label">API Key</span>
-                <Select
-                  v-model="selectedApiKeyId"
-                  :options="apiKeyOptions"
-                  option-label="label"
-                  option-value="value"
-                  fluid
-                />
+                <Select v-model="selectedApiKeyId" :options="apiKeyOptions" option-label="label" option-value="value"
+                  fluid />
               </div>
             </div>
 
-            <TabView v-model:activeIndex="apiUsageTabIndex" class="api-usage-tabs">
-              <TabPanel header="OpenAI API">
-                <div class="docs-stack">
-                  <div class="doc-row">
-                    <div class="doc-row__main">
-                      <span>baseURL</span>
-                      <code>{{ serviceBaseUrl }}</code>
+            <Tabs v-model:value="apiUsageTabIndex" class="api-usage-tabs">
+              <TabList>
+                <Tab value="0">OpenAI API</Tab>
+                <!--Tab value="1">Codex</Tab-->
+                <Tab value="2">Claude code</Tab>
+                <Tab value="3">Openclaw</Tab>
+              </TabList>
+              <TabPanels>
+                <TabPanel value="0">
+                  <div class="docs-stack">
+                    <div class="doc-row">
+                      <div class="doc-row__main">
+                        <span>baseURL</span>
+                        <code>{{ serviceBaseUrl }}</code>
+                      </div>
+                      <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy"
+                        @click="copyText(serviceBaseUrl, 'baseURL 已复制')" />
                     </div>
-                    <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy" @click="copyText(serviceBaseUrl, 'baseURL 已复制')" />
-                  </div>
-                  <div class="doc-row">
-                    <div class="doc-row__main">
-                      <span>API_KEY</span>
-                      <code>{{ selectedApiKey?.value || "--" }}</code>
+                    <div class="doc-row">
+                      <div class="doc-row__main">
+                        <span>API_KEY</span>
+                        <code>{{ selectedApiKey?.value || "--" }}</code>
+                      </div>
+                      <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy"
+                        @click="copyText(selectedApiKey?.value || '', 'API Key 已复制')" />
                     </div>
-                    <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy" @click="copyText(selectedApiKey?.value || '', 'API Key 已复制')" />
-                  </div>
-                  <div class="doc-block">
-                    <div class="doc-block__header">
-                      <span>Python 调用代码</span>
-                      <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy" @click="copyText(openAiPythonCode, 'Python 代码已复制')" />
+                    <div class="doc-block">
+                      <div class="doc-block__header">
+                        <span>Python 调用代码</span>
+                        <Button icon="pi pi-copy" severity="secondary" text rounded
+                          class="copy-action copy-action--copy" @click="copyText(openAiPythonCode, 'Python 代码已复制')" />
+                      </div>
+                      <pre>{{ openAiPythonCode }}</pre>
                     </div>
-                    <pre>{{ openAiPythonCode }}</pre>
                   </div>
-                </div>
-              </TabPanel>
+                </TabPanel>
 
-              <TabPanel header="Claude code">
-                <div class="docs-stack">
-                  <div class="doc-row">
-                    <div class="doc-row__main">
-                      <span>ANTHROPIC_BASE_URL</span>
-                      <code>{{ claudeBaseUrl }}</code>
+                <TabPanel value="1">
+                  <div class="docs-stack">
+                    <div class="doc-row">
+                      <div class="doc-row__main">
+                        <span>OPENAI_BASE_URL</span>
+                        <code>{{ serviceBaseUrl }}</code>
+                      </div>
+                      <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy"
+                        @click="copyText(serviceBaseUrl, 'OPENAI_BASE_URL 已复制')" />
                     </div>
-                    <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy" @click="copyText(claudeBaseUrl, 'ANTHROPIC_BASE_URL 已复制')" />
-                  </div>
-                  <div class="doc-row">
-                    <div class="doc-row__main">
-                      <span>ANTHROPIC_AUTH_TOKEN</span>
-                      <code>{{ selectedApiKey?.value || "--" }}</code>
+                    <div class="doc-row">
+                      <div class="doc-row__main">
+                        <span>OPENAI_API_KEY</span>
+                        <code>{{ selectedApiKey?.value || "--" }}</code>
+                      </div>
+                      <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy"
+                        @click="copyText(selectedApiKey?.value || '', 'OPENAI_API_KEY 已复制')" />
                     </div>
-                    <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy" @click="copyText(selectedApiKey?.value || '', 'ANTHROPIC_AUTH_TOKEN 已复制')" />
-                  </div>
-                  <div class="doc-row">
-                    <div class="doc-row__main">
-                      <span>ANTHROPIC_MODEL</span>
-                      <code>{{ selectedModel }}</code>
+                    <div class="doc-block">
+                      <div class="doc-block__header">
+                        <span>环境变量配置</span>
+                        <Button icon="pi pi-copy" severity="secondary" text rounded
+                          class="copy-action copy-action--copy" @click="copyText(codexEnvCode, 'Codex 环境变量已复制')" />
+                      </div>
+                      <pre>{{ codexEnvCode }}</pre>
                     </div>
-                    <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy" @click="copyText(selectedModel, 'ANTHROPIC_MODEL 已复制')" />
-                  </div>
-                  <div class="doc-block">
-                    <div class="doc-block__header">
-                      <span>环境变量配置</span>
-                      <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy" @click="copyText(claudeEnvCode, 'Claude 环境变量已复制')" />
+                    <div class="doc-block">
+                      <div class="doc-block__header">
+                        <span>config.toml 配置</span>
+                        <Button icon="pi pi-copy" severity="secondary" text rounded
+                          class="copy-action copy-action--copy" @click="copyText(codexConfigToml, 'Codex 配置已复制')" />
+                      </div>
+                      <pre>{{ codexConfigToml }}</pre>
                     </div>
-                    <pre>{{ claudeEnvCode }}</pre>
                   </div>
-                </div>
-              </TabPanel>
+                </TabPanel>
 
-              <TabPanel header="Openclaw">
-                <div class="docs-stack">
-                  <div class="doc-block">
-                    <div class="doc-block__header">
-                      <span>JSON 配置</span>
-                      <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy" @click="copyText(openClawConfig, 'Openclaw 配置已复制')" />
+                <TabPanel value="2">
+                  <div class="docs-stack">
+                    <div class="doc-row">
+                      <div class="doc-row__main">
+                        <span>ANTHROPIC_BASE_URL</span>
+                        <code>{{ claudeBaseUrl }}</code>
+                      </div>
+                      <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy"
+                        @click="copyText(claudeBaseUrl, 'ANTHROPIC_BASE_URL 已复制')" />
                     </div>
-                    <pre>{{ openClawConfig }}</pre>
+                    <div class="doc-row">
+                      <div class="doc-row__main">
+                        <span>ANTHROPIC_AUTH_TOKEN</span>
+                        <code>{{ selectedApiKey?.value || "--" }}</code>
+                      </div>
+                      <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy"
+                        @click="copyText(selectedApiKey?.value || '', 'ANTHROPIC_AUTH_TOKEN 已复制')" />
+                    </div>
+                    <div class="doc-row">
+                      <div class="doc-row__main">
+                        <span>ANTHROPIC_MODEL</span>
+                        <code>{{ selectedModel }}</code>
+                      </div>
+                      <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action copy-action--copy"
+                        @click="copyText(selectedModel, 'ANTHROPIC_MODEL 已复制')" />
+                    </div>
+                    <div class="doc-block">
+                      <div class="doc-block__header">
+                        <span>环境变量配置</span>
+                        <Button icon="pi pi-copy" severity="secondary" text rounded
+                          class="copy-action copy-action--copy" @click="copyText(claudeEnvCode, 'Claude 环境变量已复制')" />
+                      </div>
+                      <pre>{{ claudeEnvCode }}</pre>
+                    </div>
                   </div>
-                </div>
-              </TabPanel>
-            </TabView>
+                </TabPanel>
+
+                <TabPanel value="3">
+                  <div class="docs-stack">
+                    <div class="doc-block">
+                      <div class="doc-block__header">
+                        <span>JSON 配置</span>
+                        <Button icon="pi pi-copy" severity="secondary" text rounded
+                          class="copy-action copy-action--copy" @click="copyText(openClawConfig, 'Openclaw 配置已复制')" />
+                      </div>
+                      <pre>{{ openClawConfig }}</pre>
+                    </div>
+                  </div>
+                </TabPanel>
+              </TabPanels>
+            </Tabs>
           </div>
         </template>
       </Card>
