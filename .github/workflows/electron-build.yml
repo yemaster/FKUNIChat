@@ -28,22 +28,37 @@ jobs:
             runner: windows-latest
             build_args: --win nsis --x64
             artifact_name: FKUNIChat-windows-x64
+            system_name: windows
+            arch_name: x64
+            package_extensions: exe
           - name: windows-arm64
             runner: windows-latest
             build_args: --win nsis --arm64
             artifact_name: FKUNIChat-windows-arm64
+            system_name: windows
+            arch_name: arm64
+            package_extensions: exe
           - name: linux-x64
             runner: ubuntu-latest
             build_args: --linux AppImage deb --x64
             artifact_name: FKUNIChat-linux-x64
+            system_name: linux
+            arch_name: x64
+            package_extensions: AppImage,deb
           - name: linux-arm64
             runner: ubuntu-latest
             build_args: --linux AppImage deb --arm64
             artifact_name: FKUNIChat-linux-arm64
+            system_name: linux
+            arch_name: arm64
+            package_extensions: AppImage,deb
           - name: macos-arm64
             runner: macos-14
             build_args: --mac dmg zip --arm64
             artifact_name: FKUNIChat-macos-arm64
+            system_name: macos
+            arch_name: arm64
+            package_extensions: dmg
 
     env:
       CI: true
@@ -68,18 +83,22 @@ jobs:
       - name: Package Electron app
         run: npx electron-builder ${{ matrix.build_args }} --publish never
 
+      - name: Normalize installer names
+        run: node scripts/rename-release-packages.mjs
+        env:
+          PACKAGE_SYSTEM: ${{ matrix.system_name }}
+          PACKAGE_ARCH: ${{ matrix.arch_name }}
+          PACKAGE_EXTENSIONS: ${{ matrix.package_extensions }}
+
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: |
-            release/*.exe
-            release/*.dmg
-            release/*.zip
-            release/*.AppImage
-            release/*.deb
-            release/*.blockmap
-            release/latest*.yml
+            release/*-${{ matrix.system_name }}-${{ matrix.arch_name }}.exe
+            release/*-${{ matrix.system_name }}-${{ matrix.arch_name }}.dmg
+            release/*-${{ matrix.system_name }}-${{ matrix.arch_name }}.AppImage
+            release/*-${{ matrix.system_name }}-${{ matrix.arch_name }}.deb
           if-no-files-found: error
           compression-level: 0
 
@@ -96,12 +115,6 @@ jobs:
           pattern: FKUNIChat-*
           path: release-artifacts
 
-      - name: Normalize Windows update metadata names
-        run: |
-          if [ -f "release-artifacts/FKUNIChat-windows-arm64/latest.yml" ]; then
-            mv "release-artifacts/FKUNIChat-windows-arm64/latest.yml" "release-artifacts/FKUNIChat-windows-arm64/latest-arm64.yml"
-          fi
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -110,8 +123,5 @@ jobs:
           files: |
             release-artifacts/**/*.exe
             release-artifacts/**/*.dmg
-            release-artifacts/**/*.zip
             release-artifacts/**/*.AppImage
             release-artifacts/**/*.deb
-            release-artifacts/**/*.blockmap
-            release-artifacts/**/latest*.yml

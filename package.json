@@ -55,7 +55,6 @@
     ],
     "asar": true,
     "win": {
-      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
       "signAndEditExecutable": false,
       "target": [
         "nsis"
