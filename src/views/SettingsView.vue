@@ -64,6 +64,7 @@ const themeModeModel = computed({
 <template>
   <div class="page-shell settings-shell">
     <div class="settings-grid">
+      <h3 class="settings-header">外观</h3>
       <Card class="settings-card">
         <template #title>主题色</template>
         <template #content>

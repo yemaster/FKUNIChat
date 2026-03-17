@@ -1538,12 +1538,14 @@ code {
   max-width: 54rem;
 }
 
-.settings-card {
-  min-width: 0;
+.settings-header {
+  font-size: 1.1rem;
+  font-weight: normal;
+  margin-bottom: 0;
 }
 
-.settings-card .p-card-body {
-  gap: 0.9rem;
+.settings-card {
+  min-width: 0;
 }
 
 .settings-card .p-card-title {
