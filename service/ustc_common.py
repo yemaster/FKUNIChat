@@ -18,6 +18,17 @@ USER_AGENT = (
 )
 
 
+def normalize_token(token):
+    value = str(token or "").strip()
+    if not value:
+        return ""
+
+    if value.lower().startswith("bearer "):
+        value = value[7:].strip()
+
+    return value.strip().strip(";").strip('"').strip("'")
+
+
 def get_random_queue_code():
     chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
     return "".join(random.choice(chars) for _ in range(32))
@@ -48,6 +59,7 @@ def build_headers(token, accept="application/json, text/plain, */*", include_jso
 
 
 def check_token_details(token):
+    token = normalize_token(token)
     if not token:
         return {
             "valid": False,
@@ -138,6 +150,7 @@ def is_token_valid(token):
 
 
 def enter_queue(token):
+    token = normalize_token(token)
     queue_code = get_random_queue_code()
     response = requests.get(
         f"{BACKEND_URL}/ms-api/mei-wei-bu-yong-deng",
@@ -151,6 +164,7 @@ def enter_queue(token):
 
 
 def request_chat(token, model, messages, stream=False, with_search=False, tools=None):
+    token = normalize_token(token)
     queue_code = enter_queue(token)
     payload = {
       "messages": messages,

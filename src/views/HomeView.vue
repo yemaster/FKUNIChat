@@ -12,6 +12,7 @@ import Tab from "primevue/tab";
 import TabPanels from "primevue/tabpanels";
 import TabPanel from "primevue/tabpanel";
 import { useToast } from "primevue/usetoast";
+import { normalizeUstcTokenInput } from "../lib/electron";
 
 const props = defineProps({
   modelValue: {
@@ -36,8 +37,9 @@ const tokenDraft = ref("");
 const tokenEditing = ref(false);
 let timerId = null;
 const modelOptions = [
-  { label: "Deepseek-r1", value: "deepseek-r1", name: "Deepseek r1", reasoning: true },
-  { label: "Deepseek-v3", value: "deepseek-v3", name: "Deepseek v3", reasoning: false }
+  { label: "Deepseek v4 Flash", value: "deepseek-v4-flash", name: "Deepseek v4 Flash", reasoning: false },
+  { label: "Deepseek Reasoner", value: "deepseek-reasoner", name: "Deepseek Reasoner", reasoning: true },
+  { label: "Deepseek v4 Pro", value: "deepseek-v4-pro", name: "Deepseek v4 Pro", reasoning: false }
 ];
 
 onMounted(() => {
@@ -102,11 +104,11 @@ const listenHostModel = computed({
 });
 const selectedModel = computed({
   get() {
-    return props.modelValue.selectedModel || "deepseek-r1";
+    return props.modelValue.selectedModel || "deepseek-v4-flash";
   },
   set(value) {
     emit("update:model-value", {
-      selectedModel: value || "deepseek-r1"
+      selectedModel: value || "deepseek-v4-flash"
     });
   }
 });
@@ -217,6 +219,22 @@ const statusMeta = computed(() => {
   return { icon: "pi pi-minus-circle", text: "未启动", className: "idle" };
 });
 
+const tokenStatusLabel = computed(() => {
+  if (props.tokenState.pendingAction === "check") {
+    return "校验中";
+  }
+
+  if (props.tokenState.valid) {
+    return "可用";
+  }
+
+  if (props.tokenState.checked) {
+    return "无效";
+  }
+
+  return "未校验";
+});
+
 const formattedUptime = computed(() => {
   if (!props.serviceState.running || !props.serviceState.startedAt) {
     return "--";
@@ -236,21 +254,6 @@ const formattedUptime = computed(() => {
   }
 
   return `${seconds}s`;
-});
-const tokenStatusLabel = computed(() => {
-  if (props.tokenState.pendingAction === "check") {
-    return "校验中";
-  }
-
-  if (props.tokenState.valid) {
-    return "可用";
-  }
-
-  if (props.tokenState.checked) {
-    return "无效";
-  }
-
-  return "未校验";
 });
 
 function maskKey(value) {
@@ -307,7 +310,7 @@ function handleTokenInput(value) {
   tokenEditing.value = true;
   tokenDraft.value = String(value || "");
   emit("update:model-value", {
-    ustcToken: String(value || "").trim()
+    ustcToken: normalizeUstcTokenInput(value)
   });
 }
 
@@ -330,7 +333,69 @@ async function copyText(value, detail = "内容已复制") {
 <template>
   <div class="page-shell">
     <div class="home-grid home-grid--summary">
-      <Card>
+      <div class="home-summary-column">
+        <Card>
+          <template #title>USTChat Token</template>
+          <template #content>
+            <div class="summary-stack">
+              <div class="service-form">
+                <div class="service-form__row">
+                  <div class="service-form__label-line">
+                    <span class="service-form__label-line-main">
+                      <span class="service-form__label">USTChat Token</span>
+                      <Button icon="pi pi-question-circle" severity="secondary" text rounded class="inline-help-button"
+                        @click="emit('navigate', { page: 'help', anchor: 'ustc-token' })" />
+                    </span>
+                    <span class="token-state"
+                      :class="tokenState.valid ? 'token-state--valid' : tokenState.checked ? 'token-state--invalid' : 'token-state--idle'">
+                      {{ tokenStatusLabel }}
+                    </span>
+                  </div>
+                  <InputText :model-value="displayedToken" fluid placeholder="粘贴 USTChat token"
+                    class="service-form__input" @focus="handleTokenFocus" @blur="handleTokenBlur"
+                    @update:model-value="handleTokenInput" />
+                </div>
+                <div class="flat-actions">
+                  <Button label="自动获取" severity="secondary" text
+                    class="panel-action panel-action--small panel-action--primary token-action"
+                    :loading="tokenState.pendingAction === 'auto-fetch'" @click="emit('auto-fetch-token')" />
+                  <Button label="手动获取" severity="secondary" text class="panel-action panel-action--small token-action"
+                    @click="emit('open-ustc')" />
+                </div>
+              </div>
+            </div>
+          </template>
+        </Card>
+
+        <Card>
+          <template #title>API 密钥管理</template>
+          <template #content>
+            <div class="summary-stack">
+              <div class="summary-list summary-list--compact">
+                <div v-for="key in latestApiKeys" :key="key.id" class="summary-row summary-row--key">
+                  <div class="key-main">
+                    <span class="key-name">{{ key.label }}</span>
+                    <strong class="key-value">{{ maskKey(key.value) }}</strong>
+                  </div>
+                  <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action"
+                    @click="copyText(key.value, '密钥已复制')" />
+                </div>
+                <div v-if="latestApiKeys.length === 0" class="summary-row">
+                  <span>暂无密钥</span>
+                  <strong>--</strong>
+                </div>
+              </div>
+
+              <div class="flat-actions">
+                <Button label="进入管理" severity="secondary" text class="panel-action panel-action--primary"
+                  @click="emit('navigate', 'api-keys')" />
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
+
+      <Card class="home-card--status">
         <template #title>
           <div class="summary-card-title">
             <span>运行状态</span>
@@ -358,32 +423,6 @@ async function copyText(value, detail = "内容已复制") {
                 </div>
               </div>
 
-              <div class="service-form">
-                <div class="service-form__row">
-                  <div class="service-form__label-line">
-                    <span class="service-form__label-line-main">
-                      <span class="service-form__label">USTChat Token</span>
-                      <Button icon="pi pi-question-circle" severity="secondary" text rounded class="inline-help-button"
-                        @click="emit('navigate', { page: 'help', anchor: 'ustc-token' })" />
-                    </span>
-                    <span class="token-state"
-                      :class="tokenState.valid ? 'token-state--valid' : tokenState.checked ? 'token-state--invalid' : 'token-state--idle'">
-                      {{ tokenStatusLabel }}
-                    </span>
-                  </div>
-                  <InputText :model-value="displayedToken" fluid placeholder="粘贴 USTChat token"
-                    class="service-form__input" @focus="handleTokenFocus" @blur="handleTokenBlur"
-                    @update:model-value="handleTokenInput" />
-                </div>
-                <div class="flat-actions">
-                  <Button label="自动获取" severity="secondary" text
-                    class="panel-action panel-action--small panel-action--primary token-action"
-                    :loading="tokenState.pendingAction === 'auto-fetch'" @click="emit('auto-fetch-token')" />
-                  <Button label="手动获取" severity="secondary" text class="panel-action panel-action--small token-action"
-                    @click="emit('open-ustc')" />
-                </div>
-              </div>
-
               <div class="flat-actions">
                 <Button label="终止服务" severity="secondary" text class="panel-action panel-action--danger"
                   :loading="serviceState.pendingAction === 'stop'" @click="emit('stop-service')" />
@@ -392,29 +431,6 @@ async function copyText(value, detail = "内容已复制") {
 
             <template v-else>
               <div class="service-form">
-                <div class="service-form__row">
-                  <div class="service-form__label-line">
-                    <span class="service-form__label-line-main">
-                      <span class="service-form__label">USTChat Token</span>
-                      <Button icon="pi pi-question-circle" severity="secondary" text rounded class="inline-help-button"
-                        @click="emit('navigate', { page: 'help', anchor: 'ustc-token' })" />
-                    </span>
-                    <span class="token-state"
-                      :class="tokenState.valid ? 'token-state--valid' : tokenState.checked ? 'token-state--invalid' : 'token-state--idle'">
-                      {{ tokenStatusLabel }}
-                    </span>
-                  </div>
-                  <InputText :model-value="displayedToken" fluid placeholder="粘贴 USTChat token"
-                    class="service-form__input" @focus="handleTokenFocus" @blur="handleTokenBlur"
-                    @update:model-value="handleTokenInput" />
-                </div>
-                <div class="flat-actions">
-                  <Button label="自动获取" severity="secondary" text
-                    class="panel-action panel-action--small panel-action--primary token-action"
-                    :loading="tokenState.pendingAction === 'auto-fetch'" @click="emit('auto-fetch-token')" />
-                  <Button label="手动获取" severity="secondary" text class="panel-action panel-action--small token-action"
-                    @click="emit('open-ustc')" />
-                </div>
                 <div class="service-form__row">
                   <span class="service-form__label">运行端口</span>
                   <InputNumber v-model="portModel" input-id="servicePort" fluid :use-grouping="false" :min="1"
@@ -440,33 +456,6 @@ async function copyText(value, detail = "内容已复制") {
                   @click="emit('start-service')" />
               </div>
             </template>
-          </div>
-        </template>
-      </Card>
-
-      <Card>
-        <template #title>API 密钥管理</template>
-        <template #content>
-          <div class="summary-stack">
-            <div class="summary-list summary-list--compact">
-              <div v-for="key in latestApiKeys" :key="key.id" class="summary-row summary-row--key">
-                <div class="key-main">
-                  <span class="key-name">{{ key.label }}</span>
-                  <strong class="key-value">{{ maskKey(key.value) }}</strong>
-                </div>
-                <Button icon="pi pi-copy" severity="secondary" text rounded class="copy-action"
-                  @click="copyText(key.value, '密钥已复制')" />
-              </div>
-              <div v-if="latestApiKeys.length === 0" class="summary-row">
-                <span>暂无密钥</span>
-                <strong>--</strong>
-              </div>
-            </div>
-
-            <div class="flat-actions">
-              <Button label="进入管理" severity="secondary" text class="panel-action panel-action--primary"
-                @click="emit('navigate', 'api-keys')" />
-            </div>
           </div>
         </template>
       </Card>

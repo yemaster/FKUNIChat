@@ -468,8 +468,18 @@ code {
 }
 
 .home-grid--summary {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 1.1fr);
   gap: 1rem;
+}
+
+.home-summary-column {
+  display: grid;
+  gap: 1rem;
+  align-self: start;
+}
+
+.home-card--status {
+  align-self: start;
 }
 
 .home-card--wide {

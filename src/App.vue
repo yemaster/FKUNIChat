@@ -664,7 +664,7 @@ async function refreshTokenStatus(showToast = false) {
 
   if (!config.ustcToken) {
     tokenState.valid = false;
-    tokenState.checked = true;
+    tokenState.checked = false;
     tokenState.error = "";
     appendLog("frontend", "warn", "未配置 USTChat Token");
     return false;
@@ -1100,6 +1100,7 @@ function handleUnhandledRejection(event) {
             :help-anchor="helpNavigation.anchor"
             :help-anchor-token="helpNavigation.token"
             @update:model-value="Object.assign(config, $event)"
+            @check-token="refreshTokenStatus(true)"
             @auto-fetch-token="autoFetchUstcToken"
             @open-ustc="openUstcPage"
             @clear-app-logs="clearAppLogs"

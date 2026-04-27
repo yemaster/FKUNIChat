@@ -39,17 +39,18 @@ const draft = reactive({
 });
 
 const modelOptions = [
-  { label: "Deepseek-r1", value: "deepseek-r1" },
-  { label: "Deepseek-v3", value: "deepseek-v3" }
+  { label: "Deepseek v4 Flash", value: "deepseek-v4-flash" },
+  { label: "Deepseek Reasoner", value: "deepseek-reasoner" },
+  { label: "Deepseek v4 Pro", value: "deepseek-v4-pro" }
 ];
 
 const selectedModel = computed({
   get() {
-    return props.modelValue.selectedModel || "deepseek-r1";
+    return props.modelValue.selectedModel || "deepseek-v4-flash";
   },
   set(value) {
     emit("update:model-value", {
-      selectedModel: value || "deepseek-r1"
+      selectedModel: value || "deepseek-v4-flash"
     });
   }
 });
@@ -59,7 +60,7 @@ const selectedApiKey = computed(
 );
 
 const endpoint = computed(() => `http://127.0.0.1:${props.serviceState.port || props.modelValue.port || "28080"}/v1/chat/completions`);
-const canUseTools = computed(() => selectedModel.value === "deepseek-v3");
+const canUseTools = computed(() => selectedModel.value === "deepseek-v4-flash" || selectedModel.value === "deepseek-v4-pro");
 const canSend = computed(() => props.serviceState.running && !pending.value && prompt.value.trim());
 
 function isNearBottom(element) {

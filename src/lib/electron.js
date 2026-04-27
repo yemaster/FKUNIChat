@@ -66,7 +66,7 @@ const createDefaultConfig = () => ({
   selectedPage: "setup",
   sidebarCollapsed: false,
   selectedApiKeyId: "default",
-  selectedModel: "deepseek-r1",
+  selectedModel: "deepseek-v4-flash",
   listenHost: "127.0.0.1",
   themeColor: "#0ea5e9",
   themeMode: "light",
@@ -79,6 +79,40 @@ const createDefaultConfig = () => ({
   ],
   port: "28080"
 });
+
+export function normalizeUstcTokenInput(value) {
+  let text = String(value || "").trim();
+  if (!text) {
+    return "";
+  }
+
+  if (/^bearer\s+/i.test(text)) {
+    text = text.replace(/^bearer\s+/i, "").trim();
+  }
+
+  return text.replace(/;$/, "").trim().replace(/^["']|["']$/g, "");
+}
+
+function normalizeSelectedModel(value) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return "deepseek-v4-flash";
+  }
+
+  if (text === "deepseek-r1") {
+    return "deepseek-reasoner";
+  }
+
+  if (text === "deepseek-v3") {
+    return "deepseek-v4-flash";
+  }
+
+  if (["deepseek-v4-flash", "deepseek-reasoner", "deepseek-v4-pro"].includes(text)) {
+    return text;
+  }
+
+  return "deepseek-v4-flash";
+}
 
 function normalizeConfigPayload(parsed) {
   const defaults = createDefaultConfig();
@@ -104,6 +138,9 @@ function normalizeConfigPayload(parsed) {
   if (!["127.0.0.1", "0.0.0.0"].includes(normalized.listenHost)) {
     normalized.listenHost = defaults.listenHost;
   }
+
+  normalized.selectedModel = normalizeSelectedModel(normalized.selectedModel);
+  normalized.ustcToken = normalizeUstcTokenInput(normalized.ustcToken);
 
   return normalized;
 }
@@ -618,7 +655,7 @@ export async function syncRuntimeState(config) {
   );
 
   const runtimeState = {
-    ustcToken: String(config.ustcToken || ""),
+    ustcToken: normalizeUstcTokenInput(config.ustcToken),
     apiKeys: (config.apiKeys || []).map((item) => ({
       ...item,
       usageCount: Math.max(Number(item.usageCount) || 0, previousUsageMap.get(String(item.id)) || 0)
@@ -630,7 +667,9 @@ export async function syncRuntimeState(config) {
 }
 
 export async function checkUstcToken(token) {
-  if (!token) {
+  const normalizedToken = normalizeUstcTokenInput(token);
+
+  if (!normalizedToken) {
     return { valid: false, reason: "missing_token", statusCode: null, contentType: "", bodyPreview: "" };
   }
 
@@ -648,7 +687,7 @@ export async function checkUstcToken(token) {
   const runtimeInfo = await getRuntimeInfo();
   const servicePath = runtimeInfo.servicePath || joinPath(runtimeInfo.appPath, "service");
   const dataPath = runtimeInfo.dataPath || runtimeInfo.userDataPath || runtimeInfo.appPath;
-  const command = await buildPythonCommand(joinPath(servicePath, "ustc_token_helper.py"), ["check", "--token", String(token)]);
+  const command = await buildPythonCommand(joinPath(servicePath, "ustc_token_helper.py"), ["check", "--token", normalizedToken]);
   const result = await runCommand(command, { cwd: dataPath });
   ensureSuccessfulCommand(result, "Token 校验命令执行失败");
   const parsed = parseJsonOutput(result);

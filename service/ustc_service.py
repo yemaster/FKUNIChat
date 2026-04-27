@@ -16,19 +16,26 @@ if hasattr(sys.stderr, "reconfigure"):
 
 
 MODELS = {
-    "deepseek-r1": {
-        "upstream": "deepseek",
-        "show": "USTC Deepseek r1",
-        "reasoning": True,
-        "allow_tools": False,
-        "aliases": ["deepseek", "__ustc_adapter__deepseek-r1"],
-    },
-    "deepseek-v3": {
-        "upstream": "deepseek-v3",
-        "show": "USTC Deepseek v3",
+    "deepseek-v4-flash": {
+        "upstream": "deepseek-v4-flash",
+        "show": "USTC Deepseek v4 Flash",
         "reasoning": False,
         "allow_tools": True,
-        "aliases": ["__ustc_adapter__deepseek-v3"],
+        "aliases": ["__ustc_adapter__deepseek-v4-flash", "deepseek-v4-flash", "deepseek-chat"],
+    },
+    "deepseek-reasoner": {
+        "upstream": "deepseek",
+        "show": "USTC Deepseek Reasoner",
+        "reasoning": True,
+        "allow_tools": False,
+        "aliases": ["__ustc_adapter__deepseek-reasoner", "deepseek-reasoner"],
+    },
+    "deepseek-v4-pro": {
+        "upstream": "deepseek-v4-pro",
+        "show": "USTC Deepseek v4 Pro",
+        "reasoning": False,
+        "allow_tools": True,
+        "aliases": ["__ustc_adapter__deepseek-v4-pro", "deepseek-v4-pro"],
     },
 }
 
